@@ -1,0 +1,29 @@
+{
+  "name": "ramboeck-service-configurator",
+  "version": "4.1.0",
+  "description": "WordPress Service Configurator",
+  "main": "assets/js/configurator.js",
+  "scripts": {
+    "dev": "webpack --mode development --watch",
+    "build": "webpack --mode production",
+    "lint": "eslint assets/js/**/*.js",
+    "lint:fix": "eslint assets/js/**/*.js --fix",
+    "format": "prettier --write 'assets/**/*.{js,css}'",
+    "format:check": "prettier --check 'assets/**/*.{js,css}'"
+  },
+  "keywords": [
+    "wordpress",
+    "plugin",
+    "configurator"
+  ],
+  "author": "Ramböck IT",
+  "license": "GPL-2.0-or-later",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-prettier": "^5.0.0",
+    "prettier": "^3.0.0",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.0"
+  }
+}
