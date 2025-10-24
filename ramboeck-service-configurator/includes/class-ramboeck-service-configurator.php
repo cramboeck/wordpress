@@ -189,13 +189,14 @@ class RamboeckServiceConfigurator {
     
     // Asset Loading
     public function enqueue_scripts() {
+        // Check if we're on a page or post
         if (!is_singular() && !is_page()) {
             return;
         }
 
         // Check if shortcode is present
         global $post;
-        if (!has_shortcode($post->post_content, 'ramboeck_configurator')) {
+        if (empty($post) || !has_shortcode($post->post_content, 'ramboeck_configurator')) {
             return;
         }
 
@@ -370,34 +371,57 @@ class RamboeckServiceConfigurator {
 
     // AJAX Handlers
     public function ajax_get_services() {
-        check_ajax_referer('rsc_nonce', 'nonce');
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'rsc_nonce')) {
+            wp_send_json_error(array('message' => 'Sicherheitsprüfung fehlgeschlagen.'));
+            return;
+        }
 
         global $wpdb;
         $table = $wpdb->prefix . 'rsc_services';
 
         $industry = isset($_POST['industry']) ? sanitize_text_field($_POST['industry']) : '';
 
+        // Check if table exists
+        $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table'") === $table;
+        if (!$table_exists) {
+            wp_send_json_error(array('message' => 'Services-Tabelle nicht gefunden. Bitte Plugin deaktivieren und erneut aktivieren.'));
+            return;
+        }
+
         $services = $wpdb->get_results(
             "SELECT * FROM $table WHERE is_active = 1 ORDER BY sort_order ASC"
         );
 
-        // Filter and mark recommended services
-        foreach ($services as $service) {
-            $service->is_recommended = false;
+        // Check for database errors
+        if ($wpdb->last_error) {
+            wp_send_json_error(array('message' => 'Datenbankfehler: ' . $wpdb->last_error));
+            return;
+        }
 
-            if ($industry && $service->recommended_for) {
-                $recommended_industries = explode(',', $service->recommended_for);
-                if (in_array($industry, $recommended_industries) || in_array('all', $recommended_industries)) {
-                    $service->is_recommended = true;
+        // Filter and mark recommended services
+        if ($services) {
+            foreach ($services as $service) {
+                $service->is_recommended = false;
+
+                if ($industry && !empty($service->recommended_for)) {
+                    $recommended_industries = explode(',', $service->recommended_for);
+                    if (in_array($industry, $recommended_industries) || in_array('all', $recommended_industries)) {
+                        $service->is_recommended = true;
+                    }
                 }
             }
         }
 
-        wp_send_json_success($services);
+        wp_send_json_success($services ? $services : array());
     }
 
     public function ajax_submit() {
-        check_ajax_referer('rsc_nonce', 'nonce');
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'rsc_nonce')) {
+            wp_send_json_error(array('message' => 'Sicherheitsprüfung fehlgeschlagen.'));
+            return;
+        }
 
         // Validate and sanitize input
         $name = isset($_POST['name']) ? sanitize_text_field($_POST['name']) : '';
