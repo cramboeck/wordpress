@@ -371,8 +371,12 @@ class RamboeckServiceConfigurator {
 
     // AJAX Handlers
     public function ajax_get_services() {
+        // Debug logging
+        error_log('RSC: ajax_get_services called');
+
         // Verify nonce
         if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'rsc_nonce')) {
+            error_log('RSC: Nonce verification failed');
             wp_send_json_error(array('message' => 'Sicherheitsprüfung fehlgeschlagen.'));
             return;
         }
@@ -381,10 +385,12 @@ class RamboeckServiceConfigurator {
         $table = $wpdb->prefix . 'rsc_services';
 
         $industry = isset($_POST['industry']) ? sanitize_text_field($_POST['industry']) : '';
+        error_log('RSC: Requested industry: ' . $industry);
 
         // Check if table exists
         $table_exists = $wpdb->get_var("SHOW TABLES LIKE '$table'") === $table;
         if (!$table_exists) {
+            error_log('RSC: Table does not exist: ' . $table);
             wp_send_json_error(array('message' => 'Services-Tabelle nicht gefunden. Bitte Plugin deaktivieren und erneut aktivieren.'));
             return;
         }
@@ -393,9 +399,19 @@ class RamboeckServiceConfigurator {
             "SELECT * FROM $table WHERE is_active = 1 ORDER BY sort_order ASC"
         );
 
+        error_log('RSC: Found ' . count($services) . ' services');
+
         // Check for database errors
         if ($wpdb->last_error) {
+            error_log('RSC: Database error: ' . $wpdb->last_error);
             wp_send_json_error(array('message' => 'Datenbankfehler: ' . $wpdb->last_error));
+            return;
+        }
+
+        // Check if services array is empty
+        if (empty($services)) {
+            error_log('RSC: No services found in database');
+            wp_send_json_error(array('message' => 'Keine Services gefunden. Bitte Plugin deaktivieren und erneut aktivieren um Standard-Services zu laden.'));
             return;
         }
 
@@ -413,7 +429,8 @@ class RamboeckServiceConfigurator {
             }
         }
 
-        wp_send_json_success($services ? $services : array());
+        error_log('RSC: Sending ' . count($services) . ' services to frontend');
+        wp_send_json_success($services);
     }
 
     public function ajax_submit() {
