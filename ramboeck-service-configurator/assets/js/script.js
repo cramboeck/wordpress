@@ -21,17 +21,43 @@
         init() {
             this.bindEvents();
             this.updateProgress();
+            this.initializeAnimations();
+        }
+
+        initializeAnimations() {
+            // Add fade-in animation to cards
+            $('.rsc-industry-card').each(function(index) {
+                $(this).css({
+                    'animation-delay': (index * 0.05) + 's'
+                }).addClass('fade-in');
+            });
         }
 
         bindEvents() {
             const self = this;
 
-            // Industry selection
-            $('.rsc-industry-card').on('click', function() {
+            // Industry selection with better visual feedback
+            $(document).on('click', '.rsc-industry-card', function(e) {
+                e.preventDefault();
+
+                // Remove previous selection
                 $('.rsc-industry-card').removeClass('selected');
+
+                // Add selection to clicked card with animation
                 $(this).addClass('selected');
+
+                // Store selection
                 self.selectedIndustry = $(this).data('industry');
                 $('#rsc-industry').val(self.selectedIndustry);
+
+                // Visual feedback - pulse animation
+                $(this).addClass('pulse-once');
+                setTimeout(() => {
+                    $(this).removeClass('pulse-once');
+                }, 600);
+
+                // Enable next button
+                $('.rsc-button-next[data-next="2"]').prop('disabled', false).removeClass('disabled');
             });
 
             // Next button
@@ -182,9 +208,26 @@
         loadServices() {
             const self = this;
 
+            console.log('Loading services for industry:', this.selectedIndustry);
+
             $('#rsc-services-loading').show();
             $('#rsc-services-grid').hide();
             $('#rsc-no-services').hide();
+
+            // Check if rscData exists
+            if (typeof rscData === 'undefined') {
+                console.error('rscData is not defined!');
+                this.showError('Fehler', 'Plugin-Konfiguration fehlt. Bitte Seite neu laden.');
+                $('#rsc-services-loading').hide();
+                return;
+            }
+
+            console.log('AJAX Request:', {
+                url: rscData.ajaxUrl,
+                action: 'rsc_get_services',
+                nonce: rscData.nonce,
+                industry: this.selectedIndustry
+            });
 
             $.ajax({
                 url: rscData.ajaxUrl,
@@ -195,7 +238,12 @@
                     industry: this.selectedIndustry
                 },
                 success: function(response) {
-                    if (response.success && response.data.length > 0) {
+                    console.log('AJAX Response:', response);
+
+                    $('#rsc-services-loading').hide();
+
+                    if (response.success && response.data && response.data.length > 0) {
+                        console.log('Services loaded:', response.data.length);
                         self.services = response.data;
                         self.renderServices();
 
@@ -207,12 +255,35 @@
                             );
                         }
                     } else {
+                        console.warn('No services in response or response.success is false');
+                        if (response.data && response.data.message) {
+                            console.error('Error message:', response.data.message);
+                            self.showError('Fehler', response.data.message);
+                        } else {
+                            console.log('Empty services array');
+                        }
                         $('#rsc-no-services').show();
                     }
-                    $('#rsc-services-loading').hide();
                 },
-                error: function() {
-                    self.showError('Fehler', 'Services konnten nicht geladen werden. Bitte versuchen Sie es erneut.');
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', {xhr, status, error});
+                    console.error('Response Text:', xhr.responseText);
+
+                    let errorMessage = 'Services konnten nicht geladen werden. ';
+
+                    if (xhr.status === 0) {
+                        errorMessage += 'Keine Verbindung zum Server. Bitte prüfen Sie Ihre Internetverbindung.';
+                    } else if (xhr.status === 404) {
+                        errorMessage += 'AJAX-Endpunkt nicht gefunden. Plugin korrekt installiert?';
+                    } else if (xhr.status === 403) {
+                        errorMessage += 'Zugriff verweigert. Bitte neu anmelden.';
+                    } else if (xhr.status === 500) {
+                        errorMessage += 'Server-Fehler. Bitte überprüfen Sie die PHP-Fehler-Logs.';
+                    } else {
+                        errorMessage += 'Fehler ' + xhr.status + ': ' + error;
+                    }
+
+                    self.showError('Fehler', errorMessage);
                     $('#rsc-services-loading').hide();
                 }
             });
