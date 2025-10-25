@@ -21,17 +21,43 @@
         init() {
             this.bindEvents();
             this.updateProgress();
+            this.initializeAnimations();
+        }
+
+        initializeAnimations() {
+            // Add fade-in animation to cards
+            $('.rsc-industry-card').each(function(index) {
+                $(this).css({
+                    'animation-delay': (index * 0.05) + 's'
+                }).addClass('fade-in');
+            });
         }
 
         bindEvents() {
             const self = this;
 
-            // Industry selection
-            $('.rsc-industry-card').on('click', function() {
+            // Industry selection with better visual feedback
+            $(document).on('click', '.rsc-industry-card', function(e) {
+                e.preventDefault();
+
+                // Remove previous selection
                 $('.rsc-industry-card').removeClass('selected');
+
+                // Add selection to clicked card with animation
                 $(this).addClass('selected');
+
+                // Store selection
                 self.selectedIndustry = $(this).data('industry');
                 $('#rsc-industry').val(self.selectedIndustry);
+
+                // Visual feedback - pulse animation
+                $(this).addClass('pulse-once');
+                setTimeout(() => {
+                    $(this).removeClass('pulse-once');
+                }, 600);
+
+                // Enable next button
+                $('.rsc-button-next[data-next="2"]').prop('disabled', false).removeClass('disabled');
             });
 
             // Next button
