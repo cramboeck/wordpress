@@ -505,9 +505,30 @@
         }
 
         formatPrice(price) {
+            // Map currency symbols to ISO codes (fix for Edge compatibility)
+            const currencyMap = {
+                '€': 'EUR',
+                '$': 'USD',
+                '£': 'GBP',
+                '¥': 'JPY',
+                'CHF': 'CHF'
+            };
+
+            // Get currency from rscData, default to EUR
+            let currency = 'EUR';
+            if (typeof rscData !== 'undefined' && rscData.currency) {
+                // If it's a symbol, convert to ISO code
+                currency = currencyMap[rscData.currency] || rscData.currency;
+            }
+
+            // Ensure currency is a valid ISO code (3 uppercase letters)
+            if (!/^[A-Z]{3}$/.test(currency)) {
+                currency = 'EUR'; // Fallback to EUR if invalid
+            }
+
             return new Intl.NumberFormat('de-DE', {
                 style: 'currency',
-                currency: rscData.currency || 'EUR'
+                currency: currency
             }).format(price);
         }
 
