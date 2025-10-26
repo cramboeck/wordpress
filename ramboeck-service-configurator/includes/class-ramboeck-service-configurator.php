@@ -215,10 +215,28 @@ class RamboeckServiceConfigurator {
             true
         );
 
+        // Get currency and ensure it's a valid ISO code
+        $currency = get_option('rsc_currency', 'EUR');
+        $currency_map = array(
+            '€' => 'EUR',
+            '$' => 'USD',
+            '£' => 'GBP',
+            '¥' => 'JPY',
+            'CHF' => 'CHF'
+        );
+        // Convert symbol to ISO code if needed
+        if (isset($currency_map[$currency])) {
+            $currency = $currency_map[$currency];
+        }
+        // Ensure it's a valid 3-letter ISO code, fallback to EUR
+        if (!preg_match('/^[A-Z]{3}$/', $currency)) {
+            $currency = 'EUR';
+        }
+
         wp_localize_script('rsc-frontend', 'rscData', array(
             'ajaxUrl' => admin_url('admin-ajax.php'),
             'nonce' => wp_create_nonce('rsc_nonce'),
-            'currency' => get_option('rsc_currency', 'EUR'),
+            'currency' => $currency,
             'primaryColor' => get_option('rsc_primary_color', '#F27024'),
             'secondaryColor' => get_option('rsc_secondary_color', '#36313E'),
             'i18n' => array(
