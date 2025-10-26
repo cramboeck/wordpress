@@ -3,7 +3,7 @@
  * Plugin Name: Ramböck IT Service Konfigurator
  * Plugin URI: https://github.com/ramboeck-it/service-configurator
  * Description: Professioneller Service-Konfigurator für IT-Dienstleister
- * Version: 4.1.1
+ * Version: 5.0.0
  * Requires at least: 5.0
  * Requires PHP: 7.4
  * Author: Ramböck IT
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('RSC_VERSION', '4.1.1');
+define('RSC_VERSION', '5.0.0');
 define('RSC_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('RSC_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('RSC_PLUGIN_BASENAME', plugin_basename(__FILE__));

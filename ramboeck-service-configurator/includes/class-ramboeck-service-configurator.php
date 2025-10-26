@@ -32,12 +32,20 @@ class RamboeckServiceConfigurator {
         add_action('admin_init', array($this, 'register_settings'));
         
         add_shortcode('ramboeck_configurator', array($this, 'render_configurator'));
-        
+
         // AJAX
         add_action('wp_ajax_rsc_get_services', array($this, 'ajax_get_services'));
         add_action('wp_ajax_nopriv_rsc_get_services', array($this, 'ajax_get_services'));
         add_action('wp_ajax_rsc_submit_configuration', array($this, 'ajax_submit'));
         add_action('wp_ajax_nopriv_rsc_submit_configuration', array($this, 'ajax_submit'));
+
+        // New AJAX handlers for v5.0
+        add_action('wp_ajax_rsc_get_package_info', array($this, 'ajax_get_package_info'));
+        add_action('wp_ajax_nopriv_rsc_get_package_info', array($this, 'ajax_get_package_info'));
+        add_action('wp_ajax_rsc_check_recommendation', array($this, 'ajax_check_recommendation'));
+        add_action('wp_ajax_nopriv_rsc_check_recommendation', array($this, 'ajax_check_recommendation'));
+        add_action('wp_ajax_rsc_calculate_pricing', array($this, 'ajax_calculate_pricing'));
+        add_action('wp_ajax_nopriv_rsc_calculate_pricing', array($this, 'ajax_calculate_pricing'));
     }
     
     public static function activate() {
@@ -755,6 +763,155 @@ class RamboeckServiceConfigurator {
         return ob_get_clean();
     }
 
+    // Helper Functions for Pricing and Recommendations
+
+    /**
+     * Calculate tiered price for a service based on quantity
+     */
+    private function calculate_tiered_price($service_id, $quantity) {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rsc_pricing_tiers';
+
+        // Get pricing tier for this quantity
+        $tier = $wpdb->get_row($wpdb->prepare(
+            "SELECT * FROM $table
+             WHERE service_id = %d
+             AND min_quantity <= %d
+             AND (max_quantity >= %d OR max_quantity IS NULL)
+             ORDER BY min_quantity DESC
+             LIMIT 1",
+            $service_id,
+            $quantity,
+            $quantity
+        ));
+
+        if ($tier) {
+            return floatval($tier->price_per_unit);
+        }
+
+        // Fallback: get service base price
+        $service_table = $wpdb->prefix . 'rsc_services';
+        $service = $wpdb->get_row($wpdb->prepare(
+            "SELECT monthly_price FROM $service_table WHERE id = %d",
+            $service_id
+        ));
+
+        return $service ? floatval($service->monthly_price) : 0.00;
+    }
+
+    /**
+     * Calculate onboarding costs based on device count
+     */
+    private function calculate_onboarding_cost($device_count) {
+        if ($device_count <= 3) {
+            return 0.00; // Free for 1-3 devices
+        } elseif ($device_count >= 10) {
+            return 0.00; // Free for 10+ devices
+        } else {
+            // 4-9 devices: 99€ per device starting from 4th device
+            return ($device_count - 3) * 99.00;
+        }
+    }
+
+    /**
+     * Check if package is cheaper than individual services
+     */
+    private function should_recommend_package($selected_service_ids, $device_count) {
+        global $wpdb;
+        $services_table = $wpdb->prefix . 'rsc_services';
+
+        // Core services that are included in KERN-PAKET
+        $kern_paket_services = array(1, 3, 4, 5, 6, 7); // Managed Service, RMM, Patch, Security, Email, Backup
+
+        // Count how many core services are selected
+        $selected_core = array_intersect($selected_service_ids, $kern_paket_services);
+
+        // If 3 or more core services are selected, recommend package
+        if (count($selected_core) >= 3) {
+            return true;
+        }
+
+        // Calculate individual cost
+        $individual_cost = 0.00;
+        foreach ($selected_service_ids as $service_id) {
+            $service = $wpdb->get_row($wpdb->prepare(
+                "SELECT standalone_price, monthly_price FROM $services_table WHERE id = %d",
+                $service_id
+            ));
+
+            if ($service) {
+                $price = $service->standalone_price ? floatval($service->standalone_price) : floatval($service->monthly_price);
+                $individual_cost += ($price * $device_count);
+            }
+        }
+
+        // Calculate KERN-PAKET cost (Managed Service + M365)
+        $managed_price = $this->calculate_tiered_price(1, $device_count); // Managed Service with tier
+        $m365_price = 11.70; // M365 fixed price
+        $package_cost = ($managed_price + $m365_price) * $device_count;
+
+        // Recommend if package saves at least 10%
+        return ($individual_cost > $package_cost * 1.1);
+    }
+
+    /**
+     * Get KERN-PAKET information with calculated prices
+     */
+    private function get_package_info($device_count, $user_count) {
+        global $wpdb;
+        $package_table = $wpdb->prefix . 'rsc_packages';
+
+        $package = $wpdb->get_row("SELECT * FROM $package_table WHERE package_key = 'kern-paket' LIMIT 1");
+
+        if (!$package) {
+            return null;
+        }
+
+        // Calculate prices
+        $managed_price = $this->calculate_tiered_price(1, $device_count);
+        $m365_price = 11.70;
+        $total_per_user = $managed_price + $m365_price;
+        $monthly_total = $total_per_user * $user_count;
+
+        // Onboarding cost
+        $onboarding = $this->calculate_onboarding_cost($device_count);
+
+        return array(
+            'id' => $package->id,
+            'key' => $package->package_key,
+            'name' => $package->name,
+            'tagline' => $package->tagline,
+            'description' => $package->description,
+            'features' => json_decode($package->features, true),
+            'guarantees' => json_decode($package->guarantees, true),
+            'pricing' => array(
+                'managed_price' => $managed_price,
+                'm365_price' => $m365_price,
+                'total_per_user' => $total_per_user,
+                'monthly_total' => $monthly_total,
+                'onboarding' => $onboarding,
+                'tier_info' => $this->get_tier_name($device_count)
+            )
+        );
+    }
+
+    /**
+     * Get tier name for display
+     */
+    private function get_tier_name($device_count) {
+        if ($device_count <= 4) {
+            return '1-4 Geräte';
+        } elseif ($device_count <= 9) {
+            return '5-9 Geräte (-5,6%)';
+        } elseif ($device_count <= 19) {
+            return '10-19 Geräte (-11,1%)';
+        } elseif ($device_count <= 49) {
+            return '20-49 Geräte (-16,7%)';
+        } else {
+            return '50+ Geräte (-22,2%)';
+        }
+    }
+
     // AJAX Handlers
     public function ajax_get_services() {
         // Debug logging
@@ -801,7 +958,7 @@ class RamboeckServiceConfigurator {
             return;
         }
 
-        // Filter and mark recommended services
+        // Filter and mark recommended services + decode JSON fields
         if ($services) {
             foreach ($services as $service) {
                 $service->is_recommended = false;
@@ -811,6 +968,11 @@ class RamboeckServiceConfigurator {
                     if (in_array($industry, $recommended_industries) || in_array('all', $recommended_industries)) {
                         $service->is_recommended = true;
                     }
+                }
+
+                // Decode JSON fields for frontend
+                if (!empty($service->features)) {
+                    $service->features = json_decode($service->features, true);
                 }
             }
         }
@@ -919,6 +1081,190 @@ class RamboeckServiceConfigurator {
         $message = str_replace(array_keys($replacements), array_values($replacements), $template);
 
         wp_mail($admin_email, $subject, $message);
+    }
+
+    /**
+     * AJAX: Get KERN-PAKET information with calculated prices
+     */
+    public function ajax_get_package_info() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'rsc_nonce')) {
+            wp_send_json_error(array('message' => 'Sicherheitsprüfung fehlgeschlagen.'));
+            return;
+        }
+
+        $device_count = isset($_POST['device_count']) ? intval($_POST['device_count']) : 1;
+        $user_count = isset($_POST['user_count']) ? intval($_POST['user_count']) : 1;
+
+        $package_info = $this->get_package_info($device_count, $user_count);
+
+        if ($package_info) {
+            wp_send_json_success($package_info);
+        } else {
+            wp_send_json_error(array('message' => 'KERN-PAKET nicht gefunden.'));
+        }
+    }
+
+    /**
+     * AJAX: Check if package should be recommended
+     */
+    public function ajax_check_recommendation() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'rsc_nonce')) {
+            wp_send_json_error(array('message' => 'Sicherheitsprüfung fehlgeschlagen.'));
+            return;
+        }
+
+        $service_ids = isset($_POST['service_ids']) ? array_map('intval', $_POST['service_ids']) : array();
+        $device_count = isset($_POST['device_count']) ? intval($_POST['device_count']) : 1;
+
+        $should_recommend = $this->should_recommend_package($service_ids, $device_count);
+
+        // Calculate both costs for comparison
+        $individual_cost = 0.00;
+        global $wpdb;
+        $services_table = $wpdb->prefix . 'rsc_services';
+
+        foreach ($service_ids as $service_id) {
+            $service = $wpdb->get_row($wpdb->prepare(
+                "SELECT standalone_price, monthly_price FROM $services_table WHERE id = %d",
+                $service_id
+            ));
+
+            if ($service) {
+                $price = $service->standalone_price ? floatval($service->standalone_price) : floatval($service->monthly_price);
+                $individual_cost += ($price * $device_count);
+            }
+        }
+
+        // Package cost
+        $managed_price = $this->calculate_tiered_price(1, $device_count);
+        $m365_price = 11.70;
+        $package_cost = ($managed_price + $m365_price) * $device_count;
+
+        wp_send_json_success(array(
+            'recommend' => $should_recommend,
+            'individual_cost' => $individual_cost,
+            'package_cost' => $package_cost,
+            'savings' => $individual_cost - $package_cost,
+            'savings_percent' => $individual_cost > 0 ? round((($individual_cost - $package_cost) / $individual_cost) * 100, 1) : 0
+        ));
+    }
+
+    /**
+     * AJAX: Calculate complete pricing for configuration
+     */
+    public function ajax_calculate_pricing() {
+        // Verify nonce
+        if (!isset($_POST['nonce']) || !wp_verify_nonce($_POST['nonce'], 'rsc_nonce')) {
+            wp_send_json_error(array('message' => 'Sicherheitsprüfung fehlgeschlagen.'));
+            return;
+        }
+
+        $config_type = isset($_POST['config_type']) ? sanitize_text_field($_POST['config_type']) : 'individual';
+        $device_count = isset($_POST['device_count']) ? intval($_POST['device_count']) : 1;
+        $user_count = isset($_POST['user_count']) ? intval($_POST['user_count']) : 1;
+        $service_ids = isset($_POST['service_ids']) ? array_map('intval', $_POST['service_ids']) : array();
+        $addon_config = isset($_POST['addon_config']) ? json_decode(stripslashes($_POST['addon_config']), true) : array();
+
+        $result = array();
+
+        if ($config_type === 'package') {
+            // KERN-PAKET pricing
+            $managed_price = $this->calculate_tiered_price(1, $device_count);
+            $m365_price = 11.70;
+            $base_monthly = ($managed_price + $m365_price) * $user_count;
+
+            $result['base'] = array(
+                'managed_price_per_device' => $managed_price,
+                'm365_price_per_user' => $m365_price,
+                'total_per_user' => $managed_price + $m365_price,
+                'monthly_total' => $base_monthly,
+                'tier' => $this->get_tier_name($device_count)
+            );
+        } else {
+            // Individual service pricing
+            $monthly_total = 0.00;
+            $service_breakdown = array();
+
+            global $wpdb;
+            $services_table = $wpdb->prefix . 'rsc_services';
+
+            foreach ($service_ids as $service_id) {
+                $service = $wpdb->get_row($wpdb->prepare(
+                    "SELECT * FROM $services_table WHERE id = %d",
+                    $service_id
+                ));
+
+                if ($service) {
+                    $price = $service->standalone_price ? floatval($service->standalone_price) : floatval($service->monthly_price);
+                    $service_total = $price * $device_count;
+                    $monthly_total += $service_total;
+
+                    $service_breakdown[] = array(
+                        'id' => $service->id,
+                        'name' => $service->name,
+                        'price_per_unit' => $price,
+                        'quantity' => $device_count,
+                        'total' => $service_total
+                    );
+                }
+            }
+
+            $result['base'] = array(
+                'monthly_total' => $monthly_total,
+                'services' => $service_breakdown
+            );
+        }
+
+        // ADD-ONs (same for both)
+        $addon_total = 0.00;
+        $addon_breakdown = array();
+
+        if (!empty($addon_config)) {
+            global $wpdb;
+            $services_table = $wpdb->prefix . 'rsc_services';
+
+            foreach ($addon_config as $addon) {
+                $service_id = intval($addon['service_id']);
+                $quantity = intval($addon['quantity']);
+
+                $service = $wpdb->get_row($wpdb->prepare(
+                    "SELECT * FROM $services_table WHERE id = %d",
+                    $service_id
+                ));
+
+                if ($service) {
+                    $price = floatval($service->monthly_price);
+                    $total = $price * $quantity;
+                    $addon_total += $total;
+
+                    $addon_breakdown[] = array(
+                        'id' => $service->id,
+                        'name' => $service->name,
+                        'price_per_unit' => $price,
+                        'quantity' => $quantity,
+                        'total' => $total
+                    );
+                }
+            }
+        }
+
+        $result['addons'] = array(
+            'monthly_total' => $addon_total,
+            'services' => $addon_breakdown
+        );
+
+        // Onboarding
+        $result['onboarding'] = $this->calculate_onboarding_cost($device_count);
+
+        // Total
+        $result['total'] = array(
+            'monthly' => $result['base']['monthly_total'] + $addon_total,
+            'onboarding' => $result['onboarding']
+        );
+
+        wp_send_json_success($result);
     }
 
     // Admin Page Renderers (Stubs - will be implemented next)
