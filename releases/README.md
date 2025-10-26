@@ -38,11 +38,56 @@ Hier finden Sie fertige ZIP-Dateien zum direkten Upload in WordPress.
 
 ## 📋 Aktuelle Version
 
-**Version:** 4.1.2
+**Version:** 4.2.0 🚀 FOUNDATION UPDATE
 **Datum:** 2025-10-26
-**Download:** `ramboeck-service-configurator-v4.1.2-20251026-1356.zip` (46KB)
+**Download:** `ramboeck-service-configurator-v4.2.0-20251026-1700.zip` (50KB)
 
-### Was ist neu in 4.1.2?
+### Was ist neu in 4.2.0? 🏗️ DATENBANK-MODERNISIERUNG
+
+⚠️ **Wichtig: Dieses Update bereitet das Plugin für v5.0.0 vor!**
+
+✅ **Erweiterte Datenbank-Struktur:**
+- Added: Neue Felder in Services-Tabelle (features, long_description, standalone_price, etc.)
+- Added: Packages-Tabelle für KERN-PAKET Definition
+- Added: Pricing-Tiers-Tabelle für Staffelpreise
+
+✅ **Echte Ramböck IT Services:**
+- Added: Managed Service Pauschale mit Staffelpreisen (90€, 85€, 80€, 75€, 70€)
+- Added: Microsoft 365 Business Standard (11,70€/User)
+- Added: RMM Monitoring, Patchmanagement, Security (einzeln oder im Paket)
+- Added: E-Mail Security + Archivierung, Veeam Backup
+- Added: ADD-ONs: MDM, Server-Management, Extended Backup, Premium Support
+
+✅ **KERN-PAKET definiert:**
+- Added: All-inclusive Package mit allen Features
+- Added: Garantien und Benefits
+- Added: Staffelpreise basierend auf Gerätezahl
+
+✅ **Detaillierte Service-Informationen:**
+- Added: JSON-Features mit Icons für jedes Service
+- Added: Target Audience Definitionen
+- Added: Long Descriptions für zukünftige expandable Cards
+
+📋 **Status:** Foundation für v5.0.0 gelegt - Frontend noch auf alter Version
+📖 **Upgrade-Guide:** Siehe `UPGRADE-v4.2.0.md` für Details
+
+### Was war neu in 4.1.4?
+
+✅ **Server-Side Currency Fix:**
+- Fixed: PHP konvertiert jetzt automatisch '€' → 'EUR' auf Server-Seite
+- Fixed: Funktioniert auch mit gecachten/minifizierten JavaScript-Dateien
+- Added: Doppelte Absicherung (PHP + JavaScript)
+
+### Was war neu in 4.1.3?
+
+✅ **Services Loading Fix (JavaScript):**
+- Fixed: RangeError "Invalid currency code: €" behoben
+- Fixed: Services werden jetzt korrekt angezeigt (kein endloser Spinner mehr)
+- Added: Automatische Konvertierung von Währungssymbolen zu ISO-Codes (€ → EUR)
+- Added: Validierung der Währungscodes mit Fallback zu EUR
+- Improved: Robustere formatPrice() Funktion
+
+### Was war neu in 4.1.2?
 
 ✅ **Browser-Kompatibilität:**
 - Fixed: Branchen-Auswahl funktioniert jetzt auf Desktop Edge Browser
@@ -99,6 +144,9 @@ Wenn Sie bereits eine ältere Version installiert haben:
 
 | Version | Datum | Download | Größe | Highlights |
 |---------|-------|----------|-------|------------|
+| **4.2.0** 🚀 | 2025-10-26 | ramboeck-service-configurator-v4.2.0-20251026-1700.zip | 50KB | **Foundation für v5.0.0 - DB Modernisierung** |
+| 4.1.4 | 2025-10-26 | ramboeck-service-configurator-v4.1.4-20251026-1436.zip | 46KB | PHP Currency Fix (Cache-proof!) |
+| 4.1.3 | 2025-10-26 | ramboeck-service-configurator-v4.1.3-20251026-1426.zip | 46KB | JS Currency Fix (RangeError) |
 | 4.1.2 | 2025-10-26 | ramboeck-service-configurator-v4.1.2-20251026-1356.zip | 46KB | Edge Browser Kompatibilität |
 | 4.1.1 | 2025-10-26 | ramboeck-service-configurator-v4.1.1-20251026-1345.zip | 44KB | Ultra-modern UI + Bugfixes |
 | 4.1.0 | 2025-10-24 | - | - | Initial complete implementation |

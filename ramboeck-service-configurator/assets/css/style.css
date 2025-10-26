@@ -97,7 +97,7 @@
 
 .rsc-progress-steps {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr); /* v5.0: 4 steps instead of 3 */
     gap: 20px;
 }
 
@@ -1081,4 +1081,621 @@
 /* Smooth scrolling */
 html {
     scroll-behavior: smooth;
+}
+
+/* ============================================
+   v5.0.0 NEW COMPONENTS
+   ============================================ */
+
+/* Step 1: Pricing Inputs Section */
+.rsc-pricing-inputs {
+    background: linear-gradient(135deg, var(--rsc-gray-50), white);
+    border: 2px dashed var(--rsc-gray-300);
+    border-radius: var(--rsc-radius-lg);
+    padding: 32px;
+    margin-top: 40px;
+}
+
+.rsc-pricing-inputs h4 {
+    color: var(--rsc-secondary);
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 24px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rsc-pricing-inputs h4::before {
+    content: '💶';
+    font-size: 24px;
+}
+
+.rsc-form-row {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 24px;
+    margin-bottom: 24px;
+}
+
+.rsc-form-row .rsc-form-col-2 {
+    grid-column: span 1;
+}
+
+@media (min-width: 768px) {
+    .rsc-form-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.rsc-form-group small.rsc-help-text {
+    display: block;
+    margin-top: 6px;
+    font-size: 13px;
+    color: var(--rsc-gray-500);
+    font-style: italic;
+}
+
+.rsc-help-icon {
+    cursor: help;
+    font-size: 14px;
+    opacity: 0.7;
+    margin-left: 4px;
+}
+
+/* Step 2: Package Selection Cards */
+.rsc-package-choice {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 40px;
+    align-items: start;
+}
+
+@media (max-width: 1024px) {
+    .rsc-package-choice {
+        grid-template-columns: 1fr;
+        gap: 32px;
+    }
+}
+
+.rsc-package-card {
+    background: white;
+    border: 3px solid var(--rsc-gray-200);
+    border-radius: var(--rsc-radius-xl);
+    padding: 40px;
+    transition: var(--rsc-transition);
+    position: relative;
+    box-shadow: var(--rsc-shadow-md);
+}
+
+.rsc-package-card:hover {
+    border-color: var(--rsc-primary-light);
+    transform: translateY(-4px);
+    box-shadow: var(--rsc-shadow-xl);
+}
+
+.rsc-package-recommended {
+    border-color: var(--rsc-primary);
+    background: linear-gradient(135deg, rgba(242, 112, 36, 0.03), rgba(255, 140, 74, 0.05));
+}
+
+.rsc-package-recommended:hover {
+    border-color: var(--rsc-primary-dark);
+    box-shadow: 0 30px 60px -15px rgba(242, 112, 36, 0.3);
+}
+
+.rsc-package-badge {
+    position: absolute;
+    top: -16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--rsc-primary), var(--rsc-primary-light));
+    color: white;
+    padding: 8px 24px;
+    border-radius: 100px;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 12px rgba(242, 112, 36, 0.4);
+    animation: pulse-glow 2s ease-in-out infinite;
+}
+
+@keyframes pulse-glow {
+    0%, 100% {
+        box-shadow: 0 4px 12px rgba(242, 112, 36, 0.4);
+    }
+    50% {
+        box-shadow: 0 8px 24px rgba(242, 112, 36, 0.6);
+    }
+}
+
+.rsc-package-header {
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.rsc-package-header h3 {
+    color: var(--rsc-secondary);
+    font-size: 28px;
+    font-weight: 800;
+    margin: 0 0 8px 0;
+}
+
+.rsc-package-tagline {
+    color: var(--rsc-gray-600);
+    font-size: 16px;
+    margin: 0;
+}
+
+.rsc-package-pricing {
+    background: var(--rsc-gray-50);
+    border-radius: var(--rsc-radius);
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.rsc-pricing-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--rsc-gray-200);
+}
+
+.rsc-pricing-row:last-child {
+    border-bottom: none;
+}
+
+.rsc-pricing-row span {
+    color: var(--rsc-gray-700);
+    font-size: 15px;
+}
+
+.rsc-pricing-row strong {
+    color: var(--rsc-secondary);
+    font-size: 18px;
+    font-weight: 700;
+}
+
+.rsc-pricing-row small {
+    display: block;
+    font-size: 13px;
+    color: var(--rsc-gray-500);
+    margin-top: 2px;
+}
+
+.rsc-pricing-divider {
+    height: 1px;
+    background: var(--rsc-gray-300);
+    margin: 12px 0;
+}
+
+.rsc-pricing-total {
+    background: linear-gradient(135deg, rgba(242, 112, 36, 0.1), rgba(255, 140, 74, 0.05));
+    border-radius: var(--rsc-radius);
+    padding: 16px !important;
+    margin-top: 12px;
+}
+
+.rsc-pricing-total strong {
+    color: var(--rsc-primary);
+    font-size: 28px !important;
+    font-weight: 800;
+}
+
+.rsc-pricing-onboarding {
+    background: var(--rsc-success);
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+    border-radius: var(--rsc-radius);
+    padding: 12px !important;
+    margin-top: 8px;
+}
+
+.rsc-pricing-onboarding strong {
+    color: var(--rsc-success);
+}
+
+.rsc-package-features {
+    margin-bottom: 24px;
+}
+
+.rsc-package-features h4,
+.rsc-package-guarantees h4 {
+    color: var(--rsc-secondary);
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+}
+
+.rsc-package-features ul,
+.rsc-package-guarantees ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.rsc-package-features li,
+.rsc-package-guarantees li {
+    padding: 8px 0;
+    font-size: 14px;
+    color: var(--rsc-gray-700);
+    line-height: 1.5;
+}
+
+.rsc-package-guarantees {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.05), rgba(5, 150, 105, 0.02));
+    border-radius: var(--rsc-radius);
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.rsc-package-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.rsc-package-divider span {
+    background: var(--rsc-gray-100);
+    color: var(--rsc-gray-500);
+    font-weight: 700;
+    font-size: 14px;
+    padding: 12px 24px;
+    border-radius: 100px;
+    border: 2px solid var(--rsc-gray-300);
+}
+
+@media (max-width: 1024px) {
+    .rsc-package-divider span {
+        transform: rotate(0deg);
+    }
+}
+
+.rsc-package-individual {
+    border-color: var(--rsc-gray-300);
+}
+
+.rsc-package-description {
+    margin-bottom: 24px;
+}
+
+.rsc-package-description p {
+    color: var(--rsc-gray-600);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 12px;
+}
+
+.rsc-warning-text {
+    color: var(--rsc-warning) !important;
+    font-weight: 600 !important;
+}
+
+.rsc-individual-benefits ul {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 24px 0;
+}
+
+.rsc-individual-benefits li {
+    padding: 10px 0;
+    font-size: 15px;
+    color: var(--rsc-gray-700);
+}
+
+.rsc-button-large {
+    padding: 18px 36px;
+    font-size: 18px;
+    font-weight: 700;
+}
+
+/* Step 3: Config Type Indicator */
+.rsc-config-indicator {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.rsc-config-badge {
+    display: inline-block;
+    padding: 12px 28px;
+    border-radius: 100px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+.badge-package {
+    background: linear-gradient(135deg, var(--rsc-primary), var(--rsc-primary-light));
+    color: white;
+    box-shadow: 0 4px 12px rgba(242, 112, 36, 0.3);
+}
+
+.badge-individual {
+    background: linear-gradient(135deg, var(--rsc-gray-600), var(--rsc-gray-700));
+    color: white;
+    box-shadow: 0 4px 12px rgba(75, 85, 99, 0.3);
+}
+
+.badge-addon {
+    display: inline-block;
+    background: var(--rsc-success);
+    color: white;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 100px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+}
+
+/* Step 3: Recommendation Banner */
+.rsc-recommendation-banner {
+    background: linear-gradient(135deg, rgba(242, 112, 36, 0.1), rgba(255, 140, 74, 0.05));
+    border: 2px solid var(--rsc-primary);
+    border-radius: var(--rsc-radius-lg);
+    padding: 28px;
+    margin-bottom: 32px;
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    box-shadow: 0 8px 24px rgba(242, 112, 36, 0.15);
+}
+
+.rsc-recommendation-icon {
+    font-size: 36px;
+    flex-shrink: 0;
+}
+
+.rsc-recommendation-content {
+    flex: 1;
+}
+
+.rsc-recommendation-content h4 {
+    color: var(--rsc-secondary);
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 8px 0;
+}
+
+.rsc-recommendation-content p {
+    color: var(--rsc-gray-700);
+    margin: 0 0 16px 0;
+    font-size: 15px;
+}
+
+.rsc-button-small {
+    padding: 10px 20px;
+    font-size: 14px;
+}
+
+/* Step 3: Services Sections */
+.rsc-services-section {
+    margin-bottom: 48px;
+}
+
+.rsc-services-section h4 {
+    color: var(--rsc-secondary);
+    font-size: 22px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+}
+
+.rsc-services-section .rsc-help-text {
+    margin-bottom: 24px;
+}
+
+/* Service Features in Cards */
+.rsc-service-features {
+    margin: 16px 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--rsc-gray-200);
+}
+
+.rsc-service-features ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.rsc-service-features li {
+    padding: 6px 0;
+    font-size: 13px;
+    color: var(--rsc-gray-600);
+    line-height: 1.4;
+}
+
+/* Step 4: Summary Enhancements */
+.rsc-summary-section {
+    margin-bottom: 28px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--rsc-gray-200);
+}
+
+.rsc-summary-section:last-of-type {
+    border-bottom: none;
+}
+
+.rsc-summary-section h5 {
+    color: var(--rsc-secondary);
+    font-size: 16px;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+}
+
+.rsc-summary-section p {
+    color: var(--rsc-gray-700);
+    font-size: 14px;
+    margin: 6px 0;
+}
+
+.rsc-summary-section p strong {
+    color: var(--rsc-secondary);
+    font-weight: 600;
+}
+
+.rsc-summary-pricing {
+    margin-top: 24px;
+}
+
+.rsc-pricing-breakdown {
+    background: var(--rsc-gray-50);
+    border-radius: var(--rsc-radius);
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.rsc-pricing-subtotal {
+    background: linear-gradient(135deg, rgba(242, 112, 36, 0.05), rgba(255, 140, 74, 0.02));
+    border-radius: var(--rsc-radius);
+    padding: 12px !important;
+    margin-top: 12px;
+    font-weight: 600;
+}
+
+.rsc-pricing-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--rsc-gray-600);
+    margin: 16px 0 8px 0;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.rsc-summary-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.rsc-summary-list li {
+    padding: 8px 0;
+    font-size: 14px;
+    color: var(--rsc-gray-700);
+    border-bottom: 1px solid var(--rsc-gray-100);
+}
+
+.rsc-summary-list li:last-child {
+    border-bottom: none;
+}
+
+/* Step 4: ROI Calculator */
+.rsc-roi-calculator {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+    border: 2px solid var(--rsc-success);
+    border-radius: var(--rsc-radius-lg);
+    padding: 24px;
+    margin-top: 24px;
+}
+
+.rsc-roi-calculator h5 {
+    color: var(--rsc-success);
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 16px 0;
+}
+
+.rsc-roi-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.rsc-roi-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+}
+
+.rsc-roi-row span {
+    color: var(--rsc-gray-700);
+    font-size: 14px;
+}
+
+.rsc-roi-row strong {
+    color: var(--rsc-success);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.rsc-roi-highlight {
+    background: rgba(16, 185, 129, 0.15);
+    border-radius: var(--rsc-radius);
+    padding: 12px;
+    margin-top: 8px;
+}
+
+.rsc-roi-highlight strong {
+    font-size: 24px !important;
+    font-weight: 800;
+}
+
+/* Loading States */
+.rsc-loading {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.rsc-loading p {
+    color: var(--rsc-gray-600);
+    margin-top: 16px;
+    font-size: 15px;
+}
+
+/* Responsive Updates for New Components */
+@media (max-width: 768px) {
+    .rsc-pricing-inputs {
+        padding: 24px;
+    }
+
+    .rsc-package-card {
+        padding: 28px;
+    }
+
+    .rsc-recommendation-banner {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .rsc-recommendation-icon {
+        font-size: 48px;
+    }
+
+    .rsc-roi-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    .rsc-pricing-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+}
+
+/* v5.0 Progress Steps Responsive */
+@media (max-width: 768px) {
+    .rsc-progress-steps {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+
+    .rsc-progress-step-label {
+        font-size: 12px;
+    }
+
+    .rsc-progress-step-number {
+        width: 48px;
+        height: 48px;
+        font-size: 18px;
+    }
+}
+
+@media (max-width: 480px) {
+    .rsc-progress-steps {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
 }
