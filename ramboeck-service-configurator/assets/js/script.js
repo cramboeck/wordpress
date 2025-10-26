@@ -36,9 +36,9 @@
         bindEvents() {
             const self = this;
 
-            // Industry selection with better visual feedback
+            // Industry selection - simplified for better browser compatibility (especially Edge)
             $(document).on('click', '.rsc-industry-card', function(e) {
-                e.preventDefault();
+                console.log('Industry card clicked:', $(this).data('industry'));
 
                 // Remove previous selection
                 $('.rsc-industry-card').removeClass('selected');
@@ -49,6 +49,8 @@
                 // Store selection
                 self.selectedIndustry = $(this).data('industry');
                 $('#rsc-industry').val(self.selectedIndustry);
+
+                console.log('Selected industry:', self.selectedIndustry);
 
                 // Visual feedback - pulse animation
                 $(this).addClass('pulse-once');
