@@ -38,11 +38,22 @@ Hier finden Sie fertige ZIP-Dateien zum direkten Upload in WordPress.
 
 ## 📋 Aktuelle Version
 
-**Version:** 4.1.2
+**Version:** 4.1.3
 **Datum:** 2025-10-26
-**Download:** `ramboeck-service-configurator-v4.1.2-20251026-1356.zip` (46KB)
+**Download:** `ramboeck-service-configurator-v4.1.3-20251026-1426.zip` (46KB)
 
-### Was ist neu in 4.1.2?
+### Was ist neu in 4.1.3? ⭐ KRITISCHER FIX
+
+✅ **Services Loading Fix:**
+- Fixed: RangeError "Invalid currency code: €" behoben
+- Fixed: Services werden jetzt korrekt angezeigt (kein endloser Spinner mehr)
+- Added: Automatische Konvertierung von Währungssymbolen zu ISO-Codes (€ → EUR)
+- Added: Validierung der Währungscodes mit Fallback zu EUR
+- Improved: Robustere formatPrice() Funktion
+
+**Dieser Fix behebt das Hauptproblem, dass Services nicht geladen werden konnten!**
+
+### Was war neu in 4.1.2?
 
 ✅ **Browser-Kompatibilität:**
 - Fixed: Branchen-Auswahl funktioniert jetzt auf Desktop Edge Browser
@@ -99,6 +110,7 @@ Wenn Sie bereits eine ältere Version installiert haben:
 
 | Version | Datum | Download | Größe | Highlights |
 |---------|-------|----------|-------|------------|
+| 4.1.3 ⭐ | 2025-10-26 | ramboeck-service-configurator-v4.1.3-20251026-1426.zip | 46KB | **Services Loading Fix (RangeError)** |
 | 4.1.2 | 2025-10-26 | ramboeck-service-configurator-v4.1.2-20251026-1356.zip | 46KB | Edge Browser Kompatibilität |
 | 4.1.1 | 2025-10-26 | ramboeck-service-configurator-v4.1.1-20251026-1345.zip | 44KB | Ultra-modern UI + Bugfixes |
 | 4.1.0 | 2025-10-24 | - | - | Initial complete implementation |
