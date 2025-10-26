@@ -45,17 +45,24 @@ class RamboeckServiceConfigurator {
 
         $charset_collate = $wpdb->get_charset_collate();
 
-        // Services Table
+        // Services Table (Extended)
         $sql_services = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rsc_services (
             id mediumint(9) NOT NULL AUTO_INCREMENT,
             name varchar(200) NOT NULL,
             description text NOT NULL,
+            long_description text,
             tooltip text,
             setup_price decimal(10,2) NOT NULL DEFAULT 0.00,
             monthly_price decimal(10,2) NOT NULL DEFAULT 0.00,
+            standalone_price decimal(10,2) DEFAULT NULL,
             is_active tinyint(1) NOT NULL DEFAULT 1,
             sort_order int NOT NULL DEFAULT 0,
             recommended_for text,
+            service_type varchar(50) DEFAULT 'standalone',
+            package_only tinyint(1) DEFAULT 0,
+            features text,
+            target_audience text,
+            icon varchar(50),
             created_at datetime DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY  (id)
         ) $charset_collate;";
@@ -91,14 +98,46 @@ class RamboeckServiceConfigurator {
             PRIMARY KEY  (id)
         ) $charset_collate;";
 
+        // Packages Table (KERN-PAKET, etc.)
+        $sql_packages = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rsc_packages (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            package_key varchar(50) NOT NULL,
+            name varchar(200) NOT NULL,
+            tagline text,
+            description text,
+            included_services text,
+            features text,
+            guarantees text,
+            is_active tinyint(1) DEFAULT 1,
+            sort_order int NOT NULL DEFAULT 0,
+            created_at datetime DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY  (id),
+            UNIQUE KEY package_key (package_key)
+        ) $charset_collate;";
+
+        // Pricing Tiers Table (Staffelpreise)
+        $sql_tiers = "CREATE TABLE IF NOT EXISTS {$wpdb->prefix}rsc_pricing_tiers (
+            id mediumint(9) NOT NULL AUTO_INCREMENT,
+            service_id mediumint(9) NOT NULL,
+            min_quantity int NOT NULL,
+            max_quantity int,
+            price_per_unit decimal(10,2) NOT NULL,
+            discount_percent decimal(5,2) DEFAULT 0.00,
+            PRIMARY KEY  (id)
+        ) $charset_collate;";
+
         require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
         dbDelta($sql_services);
         dbDelta($sql_leads);
         dbDelta($sql_presets);
+        dbDelta($sql_packages);
+        dbDelta($sql_tiers);
 
         // Insert default data
         self::insert_default_services();
         self::insert_default_industry_presets();
+        self::insert_default_packages();
+        self::insert_default_pricing_tiers();
         self::set_default_options();
     }
     
@@ -109,31 +148,295 @@ class RamboeckServiceConfigurator {
         $count = $wpdb->get_var("SELECT COUNT(*) FROM $table");
         if ($count > 0) return;
 
-        $services = array(
-            array('Cloud Arbeitsplatz', 'Vollständig verwalteter Cloud-Arbeitsplatz', 'Microsoft 365, Windows, Support', 150.00, 45.00, 1, 'all'),
-            array('Backup & Recovery', 'Automatische Cloud-Backups', 'Tägliche Backups, 30 Tage', 200.00, 25.00, 2, 'all'),
-            array('Security & Antivirus', 'Enterprise Security', 'Next-Gen Antivirus, Firewall', 100.00, 15.00, 3, 'all'),
-            array('Email-Archivierung', 'GoBD-konforme Archivierung', '10 Jahre Aufbewahrung', 150.00, 8.00, 4, 'healthcare,legal,accounting,finance'),
-            array('Mobile Device Management', 'Smartphone & Tablet', 'iOS/Android verwalten', 100.00, 5.00, 5, 'all'),
-            array('VPN & Remote Access', 'Sicherer Fernzugriff', 'Enterprise VPN, MFA', 300.00, 20.00, 6, 'all'),
-            array('Patch Management', 'Automatische Updates', 'Windows & Apps patchen', 150.00, 12.00, 7, 'all'),
-            array('Monitoring & Alerting', '24/7 Überwachung', 'Proaktive Überwachung', 200.00, 30.00, 8, 'all'),
-            array('Helpdesk & Support', 'IT-Support', 'Ticket-System, Remote', 0.00, 35.00, 9, 'all'),
-            array('Compliance Management', 'DSGVO & ISO 27001', 'Audits, Dokumentation', 500.00, 50.00, 10, 'healthcare,legal,accounting,finance')
-        );
+        // Managed Service Pauschale (Staffelpreis wird über pricing_tiers gehandhabt)
+        $wpdb->insert($table, array(
+            'name' => 'Managed Service Pauschale',
+            'description' => 'Rundum-Sorglos IT-Betreuung - alles enthalten',
+            'long_description' => 'Komplette IT-Verwaltung inkl. Monitoring, Security, Backup und unbegrenztem Support',
+            'tooltip' => '24/7 Monitoring, Patching, Security, Backup, Support',
+            'setup_price' => 0.00,
+            'monthly_price' => 80.00, // Basis-Preis (wird durch Staffelung überschrieben)
+            'standalone_price' => NULL, // Nur im KERN-PAKET
+            'service_type' => 'core',
+            'package_only' => 1,
+            'is_active' => 1,
+            'sort_order' => 1,
+            'recommended_for' => 'all',
+            'features' => json_encode(array(
+                array('icon' => '🔍', 'title' => '24/7 RMM Monitoring', 'description' => '500+ Checkpoints, Echtzeit-Alerts'),
+                array('icon' => '🔄', 'title' => 'Automatisches Patchmanagement', 'description' => 'Windows, Office, 500+ Apps'),
+                array('icon' => '🔒', 'title' => 'Bitdefender Endpoint Security', 'description' => 'Viren-, Malware-, Ransomware-Schutz'),
+                array('icon' => '📨', 'title' => 'Hornetsecurity E-Mail Security', 'description' => 'Spam, Phishing, GoBD-Archivierung'),
+                array('icon' => '💾', 'title' => 'Veeam Backup für M365', 'description' => 'Täglich, 30 Tage Retention'),
+                array('icon' => '🎧', 'title' => 'Unbegrenzter Remote-Support', 'description' => 'Kein Minutenzählen'),
+                array('icon' => '🚗', 'title' => 'Quartals-Vor-Ort-Check', 'description' => '1x pro Quartal kostenlos'),
+                array('icon' => '⚙️', 'title' => 'Wartungs-Credits', 'description' => '5h pro 10 Geräte/Jahr')
+            )),
+            'target_audience' => 'Unternehmen 1-50 Mitarbeiter ohne eigene IT-Abteilung',
+            'icon' => 'laptop'
+        ));
 
-        foreach ($services as $s) {
-            $wpdb->insert($table, array(
-                'name' => $s[0],
-                'description' => $s[1],
-                'tooltip' => $s[2],
-                'setup_price' => $s[3],
-                'monthly_price' => $s[4],
-                'sort_order' => $s[5],
-                'is_active' => 1,
-                'recommended_for' => $s[6]
-            ));
-        }
+        // Microsoft 365 Business Standard
+        $wpdb->insert($table, array(
+            'name' => 'Microsoft 365 Business Standard',
+            'description' => 'Office-Suite, E-Mail, Cloud-Speicher',
+            'long_description' => 'Komplette Microsoft 365 Suite mit Office-Apps, Teams, OneDrive und Exchange',
+            'tooltip' => 'Word, Excel, PowerPoint, Outlook, Teams, 1TB OneDrive',
+            'setup_price' => 0.00,
+            'monthly_price' => 11.70, // Direkt über Microsoft
+            'standalone_price' => 11.70,
+            'service_type' => 'core',
+            'package_only' => 0,
+            'is_active' => 1,
+            'sort_order' => 2,
+            'recommended_for' => 'all',
+            'features' => json_encode(array(
+                array('icon' => '📝', 'title' => 'Office-Suite', 'description' => 'Word, Excel, PowerPoint, Outlook'),
+                array('icon' => '👥', 'title' => 'Microsoft Teams', 'description' => 'Chat, Video, Zusammenarbeit'),
+                array('icon' => '☁️', 'title' => '1 TB OneDrive', 'description' => 'Pro Benutzer'),
+                array('icon' => '📧', 'title' => '50 GB E-Mail', 'description' => 'Exchange Online Postfach'),
+                array('icon' => '📱', 'title' => '5 Geräte', 'description' => 'Desktop, Laptop, Tablet, Smartphone'),
+                array('icon' => '🌐', 'title' => 'Überall verfügbar', 'description' => 'Web, Desktop, Mobile')
+            )),
+            'target_audience' => 'Alle Unternehmen',
+            'icon' => 'microsoft'
+        ));
+
+        // RMM Monitoring (einzeln buchbar)
+        $wpdb->insert($table, array(
+            'name' => 'RMM Monitoring (24/7)',
+            'description' => 'Proaktive Überwachung Ihrer gesamten IT',
+            'long_description' => '24/7 Echtzeit-Überwachung mit 500+ Checkpoints pro Gerät',
+            'tooltip' => 'Hardware, Software, Security, Performance',
+            'setup_price' => 0.00,
+            'monthly_price' => 0.00, // Im KERN-PAKET enthalten
+            'standalone_price' => 25.00, // Premium wenn einzeln
+            'service_type' => 'standalone',
+            'package_only' => 0,
+            'is_active' => 1,
+            'sort_order' => 3,
+            'recommended_for' => 'all',
+            'features' => json_encode(array(
+                array('icon' => '🖥️', 'title' => 'Hardware-Gesundheit', 'description' => 'CPU, RAM, Festplatten, Temperatur'),
+                array('icon' => '💾', 'title' => 'Software-Status', 'description' => 'Updates, Antivirus, Dienste'),
+                array('icon' => '🔐', 'title' => 'Security-Checks', 'description' => 'Firewall, Failed Logins, Threats'),
+                array('icon' => '📊', 'title' => 'Reporting', 'description' => 'Täglich, Monatlich, SLA-Tracking'),
+                array('icon' => '🚨', 'title' => 'Proaktive Alerts', 'description' => 'Probleme bevor sie kritisch werden'),
+                array('icon' => '⏱️', 'title' => 'Echtzeit-Überwachung', 'description' => '24/7/365')
+            )),
+            'target_audience' => 'Unternehmen die volle Transparenz über ihre IT wollen',
+            'icon' => 'monitor'
+        ));
+
+        // Patchmanagement (einzeln buchbar)
+        $wpdb->insert($table, array(
+            'name' => 'Automatisches Patchmanagement',
+            'description' => 'Sicherheitsupdates ohne Unterbrechung',
+            'long_description' => 'Automatische Verwaltung aller Updates für Windows, Office und 500+ Anwendungen',
+            'tooltip' => 'Windows, Office, Browser, Adobe, Java, etc.',
+            'setup_price' => 0.00,
+            'monthly_price' => 0.00, // Im KERN-PAKET enthalten
+            'standalone_price' => 20.00, // Premium wenn einzeln
+            'service_type' => 'standalone',
+            'package_only' => 0,
+            'is_active' => 1,
+            'sort_order' => 4,
+            'recommended_for' => 'all',
+            'features' => json_encode(array(
+                array('icon' => '🪟', 'title' => 'Windows Updates', 'description' => 'Sicherheits- und Funktionsupdates'),
+                array('icon' => '📦', 'title' => 'Software-Updates', 'description' => 'Office, Browser, Adobe, Java, etc.'),
+                array('icon' => '🔧', 'title' => 'Firmware-Updates', 'description' => 'BIOS/UEFI, Hardware-Controller'),
+                array('icon' => '⏰', 'title' => 'Wartungsfenster', 'description' => 'Außerhalb Ihrer Arbeitszeiten'),
+                array('icon' => '↩️', 'title' => 'Rollback-Garantie', 'description' => 'Bei Problemen automatisch'),
+                array('icon' => '🧪', 'title' => 'Test-Strategie', 'description' => 'Konservativ, Balanced, Aggressiv')
+            )),
+            'target_audience' => 'Unternehmen die immer aktuell und sicher sein wollen',
+            'icon' => 'refresh'
+        ));
+
+        // Endpoint Security (einzeln buchbar)
+        $wpdb->insert($table, array(
+            'name' => 'Endpoint Security (Bitdefender)',
+            'description' => 'Umfassender Schutz vor Bedrohungen',
+            'long_description' => 'Enterprise-Grade Security mit Bitdefender GravityZone',
+            'tooltip' => 'Antivirus, Firewall, Ransomware-Schutz, EDR',
+            'setup_price' => 0.00,
+            'monthly_price' => 0.00, // Im KERN-PAKET enthalten
+            'standalone_price' => 12.00, // Premium wenn einzeln
+            'service_type' => 'standalone',
+            'package_only' => 0,
+            'is_active' => 1,
+            'sort_order' => 5,
+            'recommended_for' => 'all',
+            'features' => json_encode(array(
+                array('icon' => '🦠', 'title' => 'Antivirus/Antimalware', 'description' => 'Echtzeitschutz vor Viren'),
+                array('icon' => '🛡️', 'title' => 'Ransomware-Schutz', 'description' => 'Behavior-based Detection'),
+                array('icon' => '🔥', 'title' => 'Firewall', 'description' => 'Network Attack Defense'),
+                array('icon' => '🕵️', 'title' => 'EDR', 'description' => 'Endpoint Detection & Response'),
+                array('icon' => '🎯', 'title' => 'Zentrale Verwaltung', 'description' => 'Cloud-basiertes Management'),
+                array('icon' => '⚡', 'title' => 'Leichtgewichtig', 'description' => 'Minimale Performance-Auswirkung')
+            )),
+            'target_audience' => 'Alle Unternehmen - Security ist Pflicht',
+            'icon' => 'shield'
+        ));
+
+        // E-Mail Security (einzeln buchbar)
+        $wpdb->insert($table, array(
+            'name' => 'E-Mail Security + Archivierung',
+            'description' => 'Hornetsecurity Total Protection',
+            'long_description' => 'Umfassender E-Mail-Schutz mit GoBD-konformer Archivierung',
+            'tooltip' => 'Spam, Phishing, Malware, Archivierung',
+            'setup_price' => 0.00,
+            'monthly_price' => 0.00, // Im KERN-PAKET enthalten
+            'standalone_price' => 8.00, // Premium wenn einzeln
+            'service_type' => 'standalone',
+            'package_only' => 0,
+            'is_active' => 1,
+            'sort_order' => 6,
+            'recommended_for' => 'all',
+            'features' => json_encode(array(
+                array('icon' => '🗑️', 'title' => 'Spam-Filter', 'description' => '99.9% Erkennungsrate'),
+                array('icon' => '🎣', 'title' => 'Phishing-Schutz', 'description' => 'AI-basierte Erkennung'),
+                array('icon' => '🦠', 'title' => 'Malware-Filter', 'description' => 'Anhänge & Links scannen'),
+                array('icon' => '📁', 'title' => 'E-Mail-Archivierung', 'description' => 'GoBD-konform, revisionssicher'),
+                array('icon' => '📮', 'title' => 'Alle Postfächer', 'description' => 'inkl. info@, shared mailboxes'),
+                array('icon' => '⚖️', 'title' => 'Compliance', 'description' => 'DSGVO, GoBD, EU-Server')
+            )),
+            'target_audience' => 'Besonders wichtig für: Kanzleien, Steuerberater, Gesundheitswesen',
+            'icon' => 'mail'
+        ));
+
+        // Veeam Backup (einzeln buchbar)
+        $wpdb->insert($table, array(
+            'name' => 'Veeam Backup für Microsoft 365',
+            'description' => 'Tägliche Sicherung Ihrer M365-Daten',
+            'long_description' => 'Automatische Backups für E-Mails, OneDrive, SharePoint und Teams',
+            'tooltip' => '30 Tage Aufbewahrung, schnelle Wiederherstellung',
+            'setup_price' => 0.00,
+            'monthly_price' => 0.00, // Im KERN-PAKET enthalten
+            'standalone_price' => 6.00, // Premium wenn einzeln
+            'service_type' => 'standalone',
+            'package_only' => 0,
+            'is_active' => 1,
+            'sort_order' => 7,
+            'recommended_for' => 'all',
+            'features' => json_encode(array(
+                array('icon' => '📧', 'title' => 'E-Mail-Backup', 'description' => 'Exchange Online komplett'),
+                array('icon' => '☁️', 'title' => 'OneDrive-Backup', 'description' => 'Alle Benutzer-Dateien'),
+                array('icon' => '📚', 'title' => 'SharePoint-Backup', 'description' => 'Sites, Listen, Libraries'),
+                array('icon' => '💬', 'title' => 'Teams-Backup', 'description' => 'Chats, Dateien, Kanäle'),
+                array('icon' => '⏰', 'title' => '30 Tage Retention', 'description' => 'Standard-Aufbewahrung'),
+                array('icon' => '⚡', 'title' => 'Schnelle Wiederherstellung', 'description' => 'Einzelne Items oder komplett')
+            )),
+            'target_audience' => 'Alle M365-Nutzer - Microsoft löscht nach 30 Tagen!',
+            'icon' => 'database'
+        ));
+
+        // ADD-ONs
+
+        // MDM
+        $wpdb->insert($table, array(
+            'name' => 'Mobile Device Management (MDM)',
+            'description' => 'Zentrale Verwaltung mobiler Geräte',
+            'long_description' => 'Sichere Verwaltung von Tablets und Smartphones mit Microsoft Intune',
+            'tooltip' => 'iOS, Android, BYOD-Unterstützung',
+            'setup_price' => 0.00,
+            'monthly_price' => 5.00,
+            'standalone_price' => 5.00,
+            'service_type' => 'addon',
+            'package_only' => 0,
+            'is_active' => 1,
+            'sort_order' => 10,
+            'recommended_for' => 'all',
+            'features' => json_encode(array(
+                array('icon' => '📱', 'title' => 'Zentrale Verwaltung', 'description' => 'Microsoft Intune'),
+                array('icon' => '📲', 'title' => 'App-Verteilung', 'description' => 'Automatische Installation'),
+                array('icon' => '🗑️', 'title' => 'Remote-Wipe', 'description' => 'Bei Verlust/Diebstahl'),
+                array('icon' => '🔒', 'title' => 'Compliance-Richtlinien', 'description' => 'PIN, Verschlüsselung, etc.'),
+                array('icon' => '👔', 'title' => 'BYOD-Unterstützung', 'description' => 'Bring Your Own Device'),
+                array('icon' => '📊', 'title' => 'Reporting', 'description' => 'Geräte-Inventar, Compliance')
+            )),
+            'target_audience' => 'Unternehmen mit mobilen Mitarbeitern, Außendienst',
+            'icon' => 'smartphone'
+        ));
+
+        // Server-Management
+        $wpdb->insert($table, array(
+            'name' => 'Server-Management',
+            'description' => 'Vollständige Verwaltung Ihrer Server',
+            'long_description' => 'Umfassende Betreuung für lokale Server, VMs oder Cloud-Server',
+            'tooltip' => 'Monitoring, Patching, Backup, Performance-Tuning',
+            'setup_price' => 0.00,
+            'monthly_price' => 150.00,
+            'standalone_price' => 150.00,
+            'service_type' => 'addon',
+            'package_only' => 0,
+            'is_active' => 1,
+            'sort_order' => 11,
+            'recommended_for' => 'all',
+            'features' => json_encode(array(
+                array('icon' => '🔍', 'title' => 'Erweitertes Monitoring', 'description' => 'Services, Performance, Kapazität'),
+                array('icon' => '💾', 'title' => 'Erweiterte Backup-Strategie', 'description' => 'Täglich, wöchentlich, monatlich'),
+                array('icon' => '⚡', 'title' => 'Performance-Tuning', 'description' => 'Optimierung & Troubleshooting'),
+                array('icon' => '🚨', 'title' => 'Priorisierter Support', 'description' => 'Server-Probleme = Priorität 1'),
+                array('icon' => '📋', 'title' => 'Disaster Recovery', 'description' => 'Planung & Testing'),
+                array('icon' => '🔐', 'title' => 'Security-Hardening', 'description' => 'Best Practices, Audits')
+            )),
+            'target_audience' => 'Unternehmen mit eigenen Servern (lokal oder Cloud)',
+            'icon' => 'server'
+        ));
+
+        // Erweiterte Backup-Retention
+        $wpdb->insert($table, array(
+            'name' => 'Erweiterte Backup-Retention (90 Tage)',
+            'description' => 'Längere Aufbewahrung Ihrer Backups',
+            'long_description' => '90 Tage statt 30 Tage Backup-Aufbewahrung für M365',
+            'tooltip' => 'Compliance, längere Wiederherstellungsfenster',
+            'setup_price' => 0.00,
+            'monthly_price' => 10.00,
+            'standalone_price' => 10.00,
+            'service_type' => 'addon',
+            'package_only' => 0,
+            'is_active' => 1,
+            'sort_order' => 12,
+            'recommended_for' => 'healthcare,legal,accounting,finance',
+            'features' => json_encode(array(
+                array('icon' => '📅', 'title' => '90 Tage Aufbewahrung', 'description' => 'Statt 30 Tage Standard'),
+                array('icon' => '⚖️', 'title' => 'Compliance-Anforderungen', 'description' => 'Erfüllt erweiterte Vorgaben'),
+                array('icon' => '🕰️', 'title' => 'Längeres Wiederherstellungsfenster', 'description' => 'Bis zu 3 Monate zurück'),
+                array('icon' => '💼', 'title' => 'Audit-sicher', 'description' => 'Für Prüfungen & Audits'),
+                array('icon' => '🔒', 'title' => 'Immutable Backups', 'description' => 'Schutz vor Ransomware'),
+                array('icon' => '📊', 'title' => 'Extended Reporting', 'description' => 'Detaillierte Backup-History')
+            )),
+            'target_audience' => 'Branchen mit Compliance-Vorgaben: Anwälte, Steuerberater, Ärzte',
+            'icon' => 'clock'
+        ));
+
+        // Premium-Support
+        $wpdb->insert($table, array(
+            'name' => 'Premium-Support (Erweiterte Zeiten)',
+            'description' => 'Verlängerter Support mit kürzeren Reaktionszeiten',
+            'long_description' => 'Extended Support-Hours und prioritäre Behandlung',
+            'tooltip' => 'Mo-Fr 07:00-20:00, Sa 09:00-14:00, 2h Reaktion',
+            'setup_price' => 0.00,
+            'monthly_price' => 25.00,
+            'standalone_price' => 25.00,
+            'service_type' => 'addon',
+            'package_only' => 0,
+            'is_active' => 1,
+            'sort_order' => 13,
+            'recommended_for' => 'all',
+            'features' => json_encode(array(
+                array('icon' => '⏰', 'title' => 'Erweiterte Zeiten', 'description' => 'Mo-Fr 07:00-20:00 + Sa 09:00-14:00'),
+                array('icon' => '⚡', 'title' => '2h Reaktionszeit', 'description' => 'Kritische Probleme (statt 4h)'),
+                array('icon' => '📞', 'title' => 'Dedicated Hotline', 'description' => 'Direkte Nummer zu mir'),
+                array('icon' => '🎯', 'title' => 'Höchste Priorität', 'description' => 'Ihre Tickets zuerst'),
+                array('icon' => '👤', 'title' => 'Persönlicher Ansprechpartner', 'description' => 'Immer derselbe Techniker'),
+                array('icon' => '🔔', 'title' => 'Proaktive Benachrichtigung', 'description' => 'Bei Problemen sofort informiert')
+            )),
+            'target_audience' => 'Unternehmen mit hohen Verfügbarkeitsanforderungen',
+            'icon' => 'headset'
+        ));
     }
 
     private static function insert_default_industry_presets() {
@@ -167,7 +470,72 @@ class RamboeckServiceConfigurator {
             ));
         }
     }
-    
+
+    private static function insert_default_packages() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rsc_packages';
+
+        $count = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+        if ($count > 0) return;
+
+        // KERN-PAKET
+        $wpdb->insert($table, array(
+            'package_key' => 'kern-paket',
+            'name' => 'KERN-PAKET: Rundum-Sorglos-Betreuung',
+            'tagline' => 'Ihre IT - komplett betreut, keine Überraschungen',
+            'description' => 'Alles aus einer Hand: Microsoft 365, komplettes Monitoring, Security, Backup und unbegrenzter Support - ohne Zeitlimit, ohne Kleingedrucktes.',
+            'included_services' => '1,2', // Managed Service Pauschale + M365
+            'features' => json_encode(array(
+                '✅ Microsoft 365 Business Standard (11,70 € pro User)',
+                '✅ 24/7 RMM Monitoring',
+                '✅ Automatisches Patchmanagement',
+                '✅ Bitdefender Endpoint Security',
+                '✅ Hornetsecurity E-Mail Security + Archivierung',
+                '✅ Veeam Backup für M365 (30 Tage)',
+                '✅ Unbegrenzter Remote-Support (kein Minutenzählen!)',
+                '✅ Quartals-Vor-Ort-Check (1x/Quartal kostenlos)',
+                '✅ Wartungs-Credits (5h pro 10 Geräte/Jahr)',
+                '✅ Ticketsystem mit transparenter Nachverfolgung'
+            )),
+            'guarantees' => json_encode(array(
+                '🎯 Keine-Überraschungen-Garantie',
+                '📊 Transparente Pauschalen',
+                '🔒 Maximale Sicherheit',
+                '📈 Skalierbar & Flexibel',
+                '🤝 Persönlicher Ansprechpartner'
+            )),
+            'is_active' => 1,
+            'sort_order' => 1
+        ));
+    }
+
+    private static function insert_default_pricing_tiers() {
+        global $wpdb;
+        $table = $wpdb->prefix . 'rsc_pricing_tiers';
+
+        $count = $wpdb->get_var("SELECT COUNT(*) FROM $table");
+        if ($count > 0) return;
+
+        // Staffelpreise für Managed Service Pauschale (Service ID 1)
+        $tiers = array(
+            array(1, 1, 4, 90.00, 0.00),      // 1-4 Geräte: 90€
+            array(1, 5, 9, 85.00, 5.56),      // 5-9 Geräte: 85€ (-5,6%)
+            array(1, 10, 19, 80.00, 11.11),   // 10-19 Geräte: 80€ (-11,1%)
+            array(1, 20, 49, 75.00, 16.67),   // 20-49 Geräte: 75€ (-16,7%)
+            array(1, 50, NULL, 70.00, 22.22)  // 50+ Geräte: 70€ (-22,2%)
+        );
+
+        foreach ($tiers as $tier) {
+            $wpdb->insert($table, array(
+                'service_id' => $tier[0],
+                'min_quantity' => $tier[1],
+                'max_quantity' => $tier[2],
+                'price_per_unit' => $tier[3],
+                'discount_percent' => $tier[4]
+            ));
+        }
+    }
+
     private static function set_default_options() {
         $defaults = array(
             'rsc_admin_email' => get_option('admin_email'),
