@@ -38,11 +38,22 @@ Hier finden Sie fertige ZIP-Dateien zum direkten Upload in WordPress.
 
 ## 📋 Aktuelle Version
 
-**Version:** 4.1.1
+**Version:** 4.1.2
 **Datum:** 2025-10-26
-**Download:** `ramboeck-service-configurator-v4.1.1-20251026-1345.zip` (44KB)
+**Download:** `ramboeck-service-configurator-v4.1.2-20251026-1356.zip` (46KB)
 
-### Was ist neu in 4.1.1?
+### Was ist neu in 4.1.2?
+
+✅ **Browser-Kompatibilität:**
+- Fixed: Branchen-Auswahl funktioniert jetzt auf Desktop Edge Browser
+- Removed: Touch-Event-Handling das Edge-Clicks blockiert hat
+- Simplified: Event-Handler für bessere Cross-Browser-Kompatibilität
+- Improved: Entfernt preventDefault/stopPropagation die mit Edge interferierten
+
+✅ **Mobile:**
+- Bestätigt: Mobile/iPhone-Funktionalität bleibt voll erhalten
+
+### Was war neu in 4.1.1?
 
 ✅ **Bugfixes:**
 - Fixed: Branchen-Auswahl bleibt jetzt selektiert
@@ -88,6 +99,7 @@ Wenn Sie bereits eine ältere Version installiert haben:
 
 | Version | Datum | Download | Größe | Highlights |
 |---------|-------|----------|-------|------------|
+| 4.1.2 | 2025-10-26 | ramboeck-service-configurator-v4.1.2-20251026-1356.zip | 46KB | Edge Browser Kompatibilität |
 | 4.1.1 | 2025-10-26 | ramboeck-service-configurator-v4.1.1-20251026-1345.zip | 44KB | Ultra-modern UI + Bugfixes |
 | 4.1.0 | 2025-10-24 | - | - | Initial complete implementation |
 
